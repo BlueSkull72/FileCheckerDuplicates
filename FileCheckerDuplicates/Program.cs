@@ -82,7 +82,7 @@ namespace FileCheckerDuplicates
         }
         private static void ProcessFiles(List<FileInfo> fileList)
         {
-
+            Console.Clear();
             string output = "DUPLICATES : ";
             FileInfo[] list1 = fileList.ToArray();
             for (int i = 0; i < list1.Length; i++)
@@ -100,12 +100,13 @@ namespace FileCheckerDuplicates
                             output += "\n" + list1[i].FullName + "\n" + list1[j].FullName;
                         }
                     }
+                    if (j == i || 100 % j == 1)
+                    {
+                        Console.WriteLine("Comparing file {0}, {1} left to compare against this.", i + 1, list1.Length - j);
+                    }
                 }
-                if (i % 100 == 0)
-                {
-                    Console.Clear();
-                    Console.WriteLine(((float)i / (float)list1.Length) * 100 + "% completed.");
-                }
+                Console.WriteLine(list1.Length - i + " files left to check.");
+                Console.WriteLine(((float)i / (float)list1.Length) * 100 + "% completed.");
                 output += "\n";
             }
             if (output == "DUPLICATES : ")
