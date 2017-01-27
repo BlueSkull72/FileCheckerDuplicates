@@ -45,6 +45,7 @@ namespace FileCheckerDuplicates
             List<FileInfo> fileList = new List<FileInfo>();
             Stack<string> dirs = new Stack<string>();
             dirs.Push(inputPath);
+            Console.WriteLine("Building list of files...");
             while (dirs.Count > 0)
             {
                 string currentDir = dirs.Pop();
@@ -83,6 +84,7 @@ namespace FileCheckerDuplicates
         private static void ProcessFiles(List<FileInfo> fileList)
         {
             Console.Clear();
+            int counter = 0;
             string output = "DUPLICATES : ";
             FileInfo[] list1 = fileList.ToArray();
             for (int i = 0; i < list1.Length; i++)
@@ -95,19 +97,35 @@ namespace FileCheckerDuplicates
                     }
                     else
                     {
-                        if (FileCompare(list1[i].FullName, list1[j].FullName))
+                        if (list1[i].Name == list1[j].Name)
                         {
-                            output += "\n" + list1[i].FullName + "\n" + list1[j].FullName;
+                            if (list1[i].Extension == list1[j].Extension)
+                            {
+                                if (FileCompare(list1[i].FullName, list1[j].FullName))
+                                {
+                                    output += "\n" + list1[i].FullName + "\n" + list1[j].FullName;
+                                }
+                            }
                         }
                     }
-                    if (j == i || 100 % j == 1)
+                }
+                counter++;
+                if (counter % 10 == 0)
+                {
+                    Console.WriteLine("Comparing file {0} / {1}", i + 1, list1.Length);
+                }
+                if (counter == 2500)
+                {
+                    Console.Clear();
+                    counter = 0;
+                }
+                if (output != "DUPLICATES : ")
+                {
+                    if (output[output.Length - 1] != '\n')
                     {
-                        Console.WriteLine("Comparing file {0}, {1} left to compare against this.", i + 1, list1.Length - j);
+                        output += "\n";
                     }
                 }
-                Console.WriteLine(list1.Length - i + " files left to check.");
-                Console.WriteLine(((float)i / (float)list1.Length) * 100 + "% completed.");
-                output += "\n";
             }
             if (output == "DUPLICATES : ")
             {
