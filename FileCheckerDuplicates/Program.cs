@@ -148,7 +148,7 @@ namespace FileCheckerDuplicates
                         {
                             if (fileList[i].Extension == fileList[j].Extension)
                             {
-                                /* Note: If the hash / checksum of file1's stream is saved before entering FileCompare
+                                /* Note: If the file1bytes is saved before entering FileCompare
                                  *  then only the second file has to be streamed each iteration.
                                  */
                                 if (FileCompare(fileList[i].FullName, fileList[j].FullName))
