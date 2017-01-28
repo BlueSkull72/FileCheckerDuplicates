@@ -79,7 +79,10 @@ namespace FileCheckerDuplicates
                     dirs.Push(str);
                 }
             }
-            ProcessFiles(fileList);
+            if (fileList.Count > 2)
+            {
+                ProcessFiles(fileList);
+            }
         }
         private static void ProcessFiles(List<FileInfo> fileList)
         {
@@ -101,9 +104,12 @@ namespace FileCheckerDuplicates
                         {
                             if (list1[i].Extension == list1[j].Extension)
                             {
-                                if (FileCompare(list1[i].FullName, list1[j].FullName))
+                                if (list1[i].Length == list1[j].Length)
                                 {
-                                    output += "\n" + list1[i].FullName + "\n" + list1[j].FullName;
+                                    if (FileCompare(list1[i].FullName, list1[j].FullName))
+                                    {
+                                        output += "\n" + list1[i].FullName + "\n" + list1[j].FullName;
+                                    }
                                 }
                             }
                         }
