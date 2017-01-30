@@ -21,11 +21,12 @@ namespace FileCheckerDuplicates
                 else
                 {
                     HandleMissingFolder(inputPath);
+                    tryAgain = RequestRestart();
                 }
-                tryAgain = RequestRestart();
             } while (tryAgain);
-            Console.ReadKey();
+
         }
+
         /// <summary>
         /// Ask user for a directory to search for duplicates.
         /// </summary>
@@ -35,7 +36,6 @@ namespace FileCheckerDuplicates
             Console.WriteLine("Give path for folder to check (subfolders will also be checked): ");
             string inputPath = Console.ReadLine().Trim();
             int inputLength = inputPath.Length;
-            // Removes quotation marks which "Copy as path" option adds
             if (inputPath[0] == '"' && inputPath[inputLength - 1] == '"')
             {
                 inputPath = inputPath.Substring(1, inputLength - 2);
@@ -98,13 +98,11 @@ namespace FileCheckerDuplicates
                     subDirs = Directory.GetDirectories(currentDir);
                     files = Directory.GetFiles(currentDir);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
-                    Console.WriteLine("Uh oh, something went wrong...");
-                    Console.WriteLine(e.StackTrace);
+                    //need to somehow eat this exception
                     continue;
                 }
-                // Assignment occurs in try block, requires check as not guarenteed to have happened
                 if (files != null)
                 {
                     foreach (string file in files)
@@ -123,7 +121,7 @@ namespace FileCheckerDuplicates
             return fileList;
         }
         /// <summary>
-        /// Compares file name and extension to find potential match.
+        /// Compares file name and length to find potential match.
         /// Passes result to FileCompare.
         /// Outputs result.
         /// </summary>
@@ -132,37 +130,45 @@ namespace FileCheckerDuplicates
         {
             Console.Clear();
             int counter = 0;
-            // Using StringBuilder more efficient than multiple string concatinations
             StringBuilder duplicates = new StringBuilder();
             for (int i = 0; i < fileList.Count; i++)
             {
-                for (int j = i; j < fileList.Count; j++)
+                if (fileList[i] == null)
                 {
-                    if (j == i)
+                    continue;
+                }
+                FileInfo toCheck = fileList[i];
+                fileList.RemoveAt(i);
+                bool addedOriginal = false;
+                for (int j = 0; j < fileList.Count; j++)
+                {
+                    if (fileList[j] == null)
                     {
                         continue;
                     }
-                    else
+                    if (toCheck.Name == fileList[j].Name && toCheck.Extension == fileList[j].Extension && toCheck.Length == fileList[j].Length)
                     {
-                        if (fileList[i].Name == fileList[j].Name)
+                        if (FileCompare(toCheck.FullName, fileList[j].FullName))
                         {
-                            if (fileList[i].Extension == fileList[j].Extension)
+                            if (addedOriginal == false)
                             {
-                                /* Note: If the file1bytes is saved before entering FileCompare
-                                 *  then only the second file has to be streamed each iteration.
-                                 */
-                                if (FileCompare(fileList[i].FullName, fileList[j].FullName))
-                                {
-                                    duplicates.AppendLine(fileList[i].FullName + "\n" + fileList[j].FullName);
-                                }
+                                duplicates.AppendLine();
+                                duplicates.AppendLine(toCheck.FullName);
+                                duplicates.AppendLine(fileList[j].FullName);
+                                addedOriginal = true;
                             }
+                            else
+                            {
+                                duplicates.AppendLine(fileList[j].FullName);
+                            }
+                            fileList.RemoveAt(j);
                         }
                     }
                 }
                 counter++;
                 if (counter % 10 == 0)
                 {
-                    Console.WriteLine("Comparing file {0} / {1}", i + 1, fileList.Count);
+                    Console.WriteLine("Checking file {0} against possible duplicates.", i);
                 }
                 if (counter == 2500)
                 {
@@ -170,16 +176,12 @@ namespace FileCheckerDuplicates
                     counter = 0;
                 }
             }
-            if (duplicates.Length == 0)
+            using (StreamWriter writer = new StreamWriter(@"c:\duplicateList.txt", false))
             {
-                duplicates.Clear();
-                duplicates.AppendLine("No duplicates located.");
+                writer.Write(duplicates);
             }
-            else
-            {
-                Console.WriteLine("Duplicates: ");
-                Console.WriteLine(duplicates);
-            }
+            Console.WriteLine(@"List of duplicates written to c:\duplicateList.txt");
+            Console.ReadKey();
         }
         /// <summary>
         /// Compares file byte by byte to check for duplicates.
