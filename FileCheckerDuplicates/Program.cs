@@ -178,7 +178,7 @@ namespace FileCheckerDuplicates
                         FileInfo checker = fileList[j];
                         try
                         {
-                            if (toCheck.Extension == checker.Extension && toCheck.Length == checker.Length)
+                            if (toCheck.Name == checker.Name && toCheck.Extension == checker.Extension && toCheck.Length == checker.Length)
                             {
                                 if (FileCompare(toCheck, checker))
                                 {
@@ -217,12 +217,17 @@ namespace FileCheckerDuplicates
             ts.Milliseconds / 10);
             Console.WriteLine("RunTime checkFiles: " + elapsedTime);
             stopWatch.Reset();
-            using (StreamWriter writer = new StreamWriter(@"c:\duplicateList.txt", false))
+            if (!Directory.Exists(@"C:\Users\Public\temp"))
+            {
+                Directory.CreateDirectory(@"C:\Users\Public\temp");
+            }
+            using (StreamWriter writer = new StreamWriter(@"C:\Users\Public\temp\duplicateList.txt", false))
             {
                 writer.Write(duplicates);
             }
-            Console.WriteLine(@"List of possible duplicates written to c:\duplicateList.txt");
+            Console.WriteLine(@"List of possible duplicates written to C:\Users\temp\duplicateList.txt");
             Console.ReadKey();
+
         }
         /// <summary>
         /// Compares file binaries for duplicates.
