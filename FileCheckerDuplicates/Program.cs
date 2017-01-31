@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
-using System.Security.Cryptography;
 using System.Diagnostics;
-using System.Threading;
 
 namespace FileCheckerDuplicates
 {
@@ -19,17 +17,23 @@ namespace FileCheckerDuplicates
                 if (FolderExists(inputPath))
                 {
                     List<FileInfo> allDirs = ProcessDirectory(inputPath);
-                    ProcessFiles(allDirs);
+                    if (allDirs != null)
+                    {
+                        ProcessFiles(allDirs);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Shutting down at user request.");
+                    }
                 }
                 else
                 {
                     HandleMissingFolder(inputPath);
-                    tryAgain = RequestRestart();
+                    tryAgain = RequestContinue();
                 }
             } while (tryAgain);
 
         }
-
         /// <summary>
         /// Ask user for a directory to search for duplicates.
         /// </summary>
@@ -68,7 +72,7 @@ namespace FileCheckerDuplicates
         /// Checks with user if to try again or exit.
         /// </summary>
         /// <returns>Result of user request.</returns>
-        private static bool RequestRestart()
+        private static bool RequestContinue()
         {
             Console.WriteLine("Escape to shut down, any other key to continue.");
             ConsoleKeyInfo key = Console.ReadKey(true);
@@ -105,7 +109,7 @@ namespace FileCheckerDuplicates
                 }
                 catch (Exception)
                 {
-                    //need to somehow eat this exception
+                    //nothing to see here, just failed to get access to a directory or file!
                     continue;
                 }
                 if (files != null)
@@ -130,8 +134,15 @@ namespace FileCheckerDuplicates
             ts.Milliseconds / 10);
             Console.WriteLine("RunTime listBuilding: " + elapsedTime);
             stopWatch.Reset();
-            Thread.Sleep(15000);
-            return fileList;
+            Console.WriteLine("Estimated time to complete is listBuilding times 30.");
+            if (RequestContinue())
+            {
+                return fileList;
+            }
+            else
+            {
+                return null;
+            }
         }
         /// <summary>
         /// Compares file name and length to find potential match.
@@ -206,7 +217,6 @@ namespace FileCheckerDuplicates
             ts.Milliseconds / 10);
             Console.WriteLine("RunTime checkFiles: " + elapsedTime);
             stopWatch.Reset();
-            Thread.Sleep(15000);
             using (StreamWriter writer = new StreamWriter(@"c:\duplicateList.txt", false))
             {
                 writer.Write(duplicates);
@@ -241,11 +251,11 @@ namespace FileCheckerDuplicates
                             return false;
                     }
                 }
-
                 return true;
             }
             catch (Exception)
             {
+                //unable to open either file for whatever reason, mark as "not dupes" and continue.
                 return false;
             }
         }
