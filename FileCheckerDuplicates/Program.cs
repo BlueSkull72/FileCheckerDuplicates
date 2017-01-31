@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.Security.Cryptography;
+using System.Diagnostics;
+using System.Threading;
 
 namespace FileCheckerDuplicates
 {
@@ -88,6 +91,8 @@ namespace FileCheckerDuplicates
             Stack<string> dirs = new Stack<string>();
             dirs.Push(inputPath);
             Console.WriteLine("Building list of files...");
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
             while (dirs.Count > 0)
             {
                 string currentDir = dirs.Pop();
@@ -118,6 +123,14 @@ namespace FileCheckerDuplicates
                     }
                 }
             }
+            stopWatch.Stop();
+            TimeSpan ts = stopWatch.Elapsed;
+            string elapsedTime = string.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+            ts.Hours, ts.Minutes, ts.Seconds,
+            ts.Milliseconds / 10);
+            Console.WriteLine("RunTime listBuilding: " + elapsedTime);
+            stopWatch.Reset();
+            Thread.Sleep(15000);
             return fileList;
         }
         /// <summary>
@@ -128,97 +141,108 @@ namespace FileCheckerDuplicates
         /// <param name="fileList"></param>
         private static void ProcessFiles(List<FileInfo> fileList)
         {
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
             Console.Clear();
             int counter = 0;
             StringBuilder duplicates = new StringBuilder();
-            for (int i = 0; i < fileList.Count; i++)
+            while (fileList.Count > 0)
             {
-                if (fileList[i] == null)
+                if (fileList[0] == null)
                 {
-                    continue;
+                    fileList.TrimExcess();
                 }
-                FileInfo toCheck = fileList[i];
-                fileList.RemoveAt(i);
-                bool addedOriginal = false;
-                for (int j = 0; j < fileList.Count; j++)
+                else
                 {
-                    if (fileList[j] == null)
+                    FileInfo toCheck = fileList[0];
+                    fileList.RemoveAt(0);
+                    fileList.TrimExcess();
+                    bool addedOriginal = false;
+                    for (int j = 0; j < fileList.Count; j++)
                     {
-                        continue;
-                    }
-                    if (toCheck.Name == fileList[j].Name && toCheck.Extension == fileList[j].Extension && toCheck.Length == fileList[j].Length)
-                    {
-                        if (FileCompare(toCheck.FullName, fileList[j].FullName))
+                        if (fileList[j] == null)
                         {
-                            if (addedOriginal == false)
-                            {
-                                duplicates.AppendLine();
-                                duplicates.AppendLine(toCheck.FullName);
-                                duplicates.AppendLine(fileList[j].FullName);
-                                addedOriginal = true;
-                            }
-                            else
-                            {
-                                duplicates.AppendLine(fileList[j].FullName);
-                            }
-                            fileList.RemoveAt(j);
+                            continue;
                         }
+                        FileInfo checker = fileList[j];
+                        try
+                        {
+                            if (toCheck.Extension == checker.Extension && toCheck.Length == checker.Length)
+                            {
+                                if (FileCompare(toCheck, checker))
+                                {
+                                    if (addedOriginal == false)
+                                    {
+                                        duplicates.AppendLine();
+                                        duplicates.AppendLine(toCheck.FullName);
+                                        duplicates.AppendLine(checker.FullName);
+                                        addedOriginal = true;
+                                    }
+                                    else
+                                    {
+                                        duplicates.AppendLine(checker.FullName);
+                                    }
+                                    fileList.RemoveAt(j);
+                                }
+                            }
+                        }
+                        catch (Exception) { continue; }
                     }
                 }
                 counter++;
                 if (counter % 10 == 0)
                 {
-                    Console.WriteLine("Checking file {0} against possible duplicates.", i);
+                    Console.WriteLine("Checking file {0} against possible duplicates.", counter);
                 }
-                if (counter == 2500)
+                if (counter % 2500 == 0)
                 {
                     Console.Clear();
-                    counter = 0;
                 }
             }
+            stopWatch.Stop();
+            TimeSpan ts = stopWatch.Elapsed;
+            string elapsedTime = string.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+            ts.Hours, ts.Minutes, ts.Seconds,
+            ts.Milliseconds / 10);
+            Console.WriteLine("RunTime checkFiles: " + elapsedTime);
+            stopWatch.Reset();
+            Thread.Sleep(15000);
             using (StreamWriter writer = new StreamWriter(@"c:\duplicateList.txt", false))
             {
                 writer.Write(duplicates);
             }
-            Console.WriteLine(@"List of duplicates written to c:\duplicateList.txt");
+            Console.WriteLine(@"List of possible duplicates written to c:\duplicateList.txt");
             Console.ReadKey();
         }
         /// <summary>
-        /// Compares file byte by byte to check for duplicates.
+        /// Compares file binaries for duplicates.
         /// </summary>
         /// <param name="file1"></param>
         /// <param name="file2"></param>
         /// <returns>Result if files are same.</returns>
-        private static bool FileCompare(string file1, string file2)
+        const int BYTES_TO_READ = sizeof(Int64);
+        private static bool FileCompare(FileInfo fileOne, FileInfo fileTwo)
         {
-            int file1byte;
-            int file2byte;
-            FileStream fs1;
-            FileStream fs2;
-            if (file1 == file2)
-            {
-                return true;
-            }
+            int iterations = (int)Math.Ceiling((double)fileOne.Length / BYTES_TO_READ);
             try
             {
-                fs1 = new FileStream(file1, FileMode.Open, FileAccess.Read);
-                fs2 = new FileStream(file2, FileMode.Open, FileAccess.Read);
-                if (fs1.Length != fs2.Length)
+                using (FileStream fs1 = fileOne.OpenRead())
+                using (FileStream fs2 = fileTwo.OpenRead())
                 {
-                    fs1.Close();
-                    fs2.Close();
-                    return false;
-                }
-                do
-                {
-                    file1byte = fs1.ReadByte();
-                    file2byte = fs2.ReadByte();
-                }
-                while ((file1byte == file2byte) && (file1byte != -1));
+                    byte[] fileOneByteArray = new byte[BYTES_TO_READ];
+                    byte[] fileTwoByteArray = new byte[BYTES_TO_READ];
 
-                fs1.Close();
-                fs2.Close();
-                return (file1byte == file2byte);
+                    for (int i = 0; i < iterations; i++)
+                    {
+                        fs1.Read(fileOneByteArray, 0, BYTES_TO_READ);
+                        fs2.Read(fileTwoByteArray, 0, BYTES_TO_READ);
+
+                        if (BitConverter.ToInt64(fileOneByteArray, 0) != BitConverter.ToInt64(fileTwoByteArray, 0))
+                            return false;
+                    }
+                }
+
+                return true;
             }
             catch (Exception)
             {
