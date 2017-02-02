@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using System.Diagnostics;
+using System.Collections;
 
 namespace FileCheckerDuplicates
 {
@@ -144,10 +145,11 @@ namespace FileCheckerDuplicates
                 return null;
             }
         }
+        private static StringBuilder duplicates = new StringBuilder();
         /// <summary>
-        /// Compares file name and length to find potential match.
-        /// Passes result to FileCompare.
-        /// Outputs result.
+        /// Converts filelist to stack, iterates through it and hands the
+        /// popped object and remaining stack to ProcessFilesSubSequence for
+        /// further processing.
         /// </summary>
         /// <param name="fileList"></param>
         private static void ProcessFiles(List<FileInfo> fileList)
@@ -156,50 +158,10 @@ namespace FileCheckerDuplicates
             stopWatch.Start();
             Console.Clear();
             int counter = 0;
-            StringBuilder duplicates = new StringBuilder();
-            while (fileList.Count > 0)
+            Stack<FileInfo> firstStackToCheck = new Stack<FileInfo>(fileList);
+            while (firstStackToCheck.Count > 0)
             {
-                if (fileList[0] == null)
-                {
-                    fileList.TrimExcess();
-                }
-                else
-                {
-                    FileInfo toCheck = fileList[0];
-                    fileList.RemoveAt(0);
-                    fileList.TrimExcess();
-                    bool addedOriginal = false;
-                    for (int j = 0; j < fileList.Count; j++)
-                    {
-                        if (fileList[j] == null)
-                        {
-                            continue;
-                        }
-                        FileInfo checker = fileList[j];
-                        try
-                        {
-                            if (toCheck.Extension == checker.Extension && toCheck.Length == checker.Length)
-                            {
-                                if (FileCompare(toCheck, checker))
-                                {
-                                    if (addedOriginal == false)
-                                    {
-                                        duplicates.AppendLine();
-                                        duplicates.AppendLine(toCheck.FullName);
-                                        duplicates.AppendLine(checker.FullName);
-                                        addedOriginal = true;
-                                    }
-                                    else
-                                    {
-                                        duplicates.AppendLine(checker.FullName);
-                                    }
-                                    fileList.RemoveAt(j);
-                                }
-                            }
-                        }
-                        catch (Exception) { continue; }
-                    }
-                }
+                ProcessFilesSubSequence(firstStackToCheck.Pop(), firstStackToCheck);
                 counter++;
                 if (counter % 10 == 0)
                 {
@@ -224,6 +186,51 @@ namespace FileCheckerDuplicates
             Console.WriteLine(@"List of possible duplicates written to c:\duplicateList.txt");
             Console.ReadKey();
         }
+
+        /// <summary>
+        /// Compares file name and length to find potential match.
+        /// Uses stack
+        /// Passes result to FileCompare.
+        /// Outputs result.
+        /// </summary>
+        /// <param name="fileList"></param>
+        private static void ProcessFilesSubSequence(FileInfo fileToCheck, Stack<FileInfo> subStackToCheck)
+        {
+            Stack<FileInfo> stackToCheck = new Stack<FileInfo>(subStackToCheck);
+            bool addedOriginal = false;
+            while (stackToCheck.Count > 0)
+            {
+                try
+                {
+                    FileInfo checker = stackToCheck.Pop();
+                    if (fileToCheck.Extension == checker.Extension)
+                    {
+                        if (fileToCheck.Length == checker.Length)
+                        {
+                            if (FileCompare(fileToCheck, checker))
+                            {
+                                if (addedOriginal == false)
+                                {
+                                    duplicates.AppendLine();
+                                    duplicates.AppendLine(fileToCheck.FullName);
+                                    duplicates.AppendLine(checker.FullName);
+                                    addedOriginal = true;
+                                }
+                                else
+                                {
+                                    duplicates.AppendLine(checker.FullName);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    stackToCheck.Pop();
+                }
+            }
+        }
+
         /// <summary>
         /// Compares file binaries for duplicates.
         /// </summary>
