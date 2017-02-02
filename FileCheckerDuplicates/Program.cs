@@ -85,8 +85,7 @@ namespace FileCheckerDuplicates
             }
         }
         /// <summary>
-        /// Builds a list of files and directories and iterates
-        /// through them.
+        /// Builds a list of files and directories and iterates through them.
         /// </summary>
         /// <param name="inputPath"></param>
         /// <returns>List of files found in directory and sub-directories</returns>
@@ -135,7 +134,7 @@ namespace FileCheckerDuplicates
             ts.Milliseconds / 10);
             Console.WriteLine("RunTime listBuilding: " + elapsedTime);
             stopWatch.Reset();
-            Console.WriteLine("Estimated time to complete is listBuilding times 20.");
+            Console.WriteLine("Estimated time to complete is listBuilding times 30.");
             if (RequestContinue())
             {
                 return fileList;
@@ -145,11 +144,10 @@ namespace FileCheckerDuplicates
                 return null;
             }
         }
-        private static StringBuilder duplicates = new StringBuilder();
         /// <summary>
-        /// Converts filelist to stack, iterates through it and hands the
-        /// popped object and remaining stack to ProcessFilesSubSequence for
-        /// further processing.
+        /// Compares file name and length to find potential match.
+        /// Passes result to FileCompare.
+        /// Outputs result.
         /// </summary>
         /// <param name="fileList"></param>
         private static void ProcessFiles(List<FileInfo> fileList)
@@ -158,10 +156,50 @@ namespace FileCheckerDuplicates
             stopWatch.Start();
             Console.Clear();
             int counter = 0;
-            Stack<FileInfo> firstStackToCheck = new Stack<FileInfo>(fileList);
-            while (firstStackToCheck.Count > 0)
+            StringBuilder duplicates = new StringBuilder();
+            while (fileList.Count > 0)
             {
-                ProcessFilesSubSequence(firstStackToCheck.Pop(), firstStackToCheck);
+                if (fileList[0] == null)
+                {
+                    fileList.TrimExcess();
+                }
+                else
+                {
+                    FileInfo toCheck = fileList[0];
+                    fileList.RemoveAt(0);
+                    fileList.TrimExcess();
+                    bool addedOriginal = false;
+                    for (int j = 0; j < fileList.Count; j++)
+                    {
+                        if (fileList[j] == null)
+                        {
+                            continue;
+                        }
+                        FileInfo checker = fileList[j];
+                        try
+                        {
+                            if (toCheck.Name == checker.Name && toCheck.Extension == checker.Extension && toCheck.Length == checker.Length)
+                            {
+                                if (FileCompare(toCheck, checker))
+                                {
+                                    if (addedOriginal == false)
+                                    {
+                                        duplicates.AppendLine();
+                                        duplicates.AppendLine(toCheck.FullName);
+                                        duplicates.AppendLine(checker.FullName);
+                                        addedOriginal = true;
+                                    }
+                                    else
+                                    {
+                                        duplicates.AppendLine(checker.FullName);
+                                    }
+                                    fileList.RemoveAt(j);
+                                }
+                            }
+                        }
+                        catch (Exception) { continue; }
+                    }
+                }
                 counter++;
                 if (counter % 10 == 0)
                 {
@@ -178,6 +216,7 @@ namespace FileCheckerDuplicates
             ts.Hours, ts.Minutes, ts.Seconds,
             ts.Milliseconds / 10);
             Console.WriteLine("RunTime checkFiles: " + elapsedTime);
+            stopWatch.Reset();
             if (!Directory.Exists(@"C:\Users\Public\temp"))
             {
                 Directory.CreateDirectory(@"C:\Users\Public\temp");
@@ -188,52 +227,8 @@ namespace FileCheckerDuplicates
             }
             Console.WriteLine(@"List of possible duplicates written to C:\Users\temp\duplicateList.txt");
             Console.ReadKey();
-        }
 
-        /// <summary>
-        /// Compares passed file extension and length to find 
-        /// potential match against remaining stack.
-        /// Passes result to FileCompare.
-        /// Outputs result.
-        /// </summary>
-        /// <param name="fileList"></param>
-        private static void ProcessFilesSubSequence(FileInfo fileToCheck, Stack<FileInfo> subStackToCheck)
-        {
-            Stack<FileInfo> stackToCheck = new Stack<FileInfo>(subStackToCheck);
-            bool addedOriginal = false;
-            while (stackToCheck.Count > 0)
-            {
-                try
-                {
-                    FileInfo checker = stackToCheck.Pop();
-                    if (fileToCheck.Extension == checker.Extension)
-                    {
-                        if (fileToCheck.Length == checker.Length)
-                        {
-                            if (FileCompare(fileToCheck, checker))
-                            {
-                                if (addedOriginal == false)
-                                {
-                                    duplicates.AppendLine();
-                                    duplicates.AppendLine(fileToCheck.FullName);
-                                    duplicates.AppendLine(checker.FullName);
-                                    addedOriginal = true;
-                                }
-                                else
-                                {
-                                    duplicates.AppendLine(checker.FullName);
-                                }
-                            }
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    stackToCheck.Pop();
-                }
-            }
         }
-
         /// <summary>
         /// Compares file binaries for duplicates.
         /// </summary>
