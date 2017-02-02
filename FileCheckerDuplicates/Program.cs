@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using System.Diagnostics;
-using System.Collections;
 
 namespace FileCheckerDuplicates
 {
@@ -86,7 +85,8 @@ namespace FileCheckerDuplicates
             }
         }
         /// <summary>
-        /// Builds a list of files and directories and iterates through them.
+        /// Builds a list of files and directories and iterates
+        /// through them.
         /// </summary>
         /// <param name="inputPath"></param>
         /// <returns>List of files found in directory and sub-directories</returns>
@@ -191,8 +191,8 @@ namespace FileCheckerDuplicates
         }
 
         /// <summary>
-        /// Compares file name and length to find potential match.
-        /// Uses stack
+        /// Compares passed file extension and length to find 
+        /// potential match against remaining stack.
         /// Passes result to FileCompare.
         /// Outputs result.
         /// </summary>
