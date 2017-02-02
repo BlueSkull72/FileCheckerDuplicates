@@ -155,7 +155,6 @@ namespace FileCheckerDuplicates
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
             Console.Clear();
-            int counter = 0;
             StringBuilder duplicates = new StringBuilder();
             while (fileList.Count > 0)
             {
@@ -200,15 +199,8 @@ namespace FileCheckerDuplicates
                         catch (Exception) { continue; }
                     }
                 }
-                counter++;
-                if (counter % 10 == 0)
-                {
-                    Console.WriteLine("Checking file {0} against possible duplicates.", counter);
-                }
-                if (counter % 2500 == 0)
-                {
-                    Console.Clear();
-                }
+                Console.SetCursorPosition(0, 0);
+                Console.WriteLine("Files left to check against possible duplicates : {0}", fileList.Count);
             }
             stopWatch.Stop();
             TimeSpan ts = stopWatch.Elapsed;
