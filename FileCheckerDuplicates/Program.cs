@@ -135,7 +135,7 @@ namespace FileCheckerDuplicates
             ts.Milliseconds / 10);
             Console.WriteLine("RunTime listBuilding: " + elapsedTime);
             stopWatch.Reset();
-            Console.WriteLine("Estimated time to complete is listBuilding times 30.");
+            Console.WriteLine("Estimated time to complete is listBuilding times 20.");
             if (RequestContinue())
             {
                 return fileList;
